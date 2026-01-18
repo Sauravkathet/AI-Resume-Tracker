@@ -81,7 +81,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Resume</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload the Resume</h2>
       
       <div
         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
