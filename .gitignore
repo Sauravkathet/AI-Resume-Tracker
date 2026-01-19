@@ -19,17 +19,7 @@ build
 .env.test.local
 .env.production.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+
 
 # Logs
 logs
@@ -44,10 +34,6 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-.cache
 
 # TypeScript
 *.tsbuildinfo
@@ -55,12 +41,3 @@ Thumbs.db
 # Optional npm cache directory
 .npm
 
-# Optional eslint cache
-.eslintcache
-
-# Yarn
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
