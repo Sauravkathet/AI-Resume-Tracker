@@ -86,6 +86,21 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center space-x-4 mb-8">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 ${step === 'register' ? 'bg-indigo-600 text-white scale-110' : 'bg-green-500 text-white'}`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div className={`flex-1 h-1 transition-all duration-500 ${step === 'verify' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 ${step === 'verify' ? 'bg-indigo-600 text-white scale-110' : 'bg-gray-300 text-gray-600'}`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {step === 'register' ? 'Create your account' : 'Verify your email'}
