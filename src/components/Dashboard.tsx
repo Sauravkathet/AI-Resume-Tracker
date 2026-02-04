@@ -407,7 +407,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             onClick={() => setCurrentView('applications')}
                             className="mt-3 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
                           >
-                            Create your application
+                            Create your application to get started
                           </button>
                         </div>
                       ) : (
