@@ -122,7 +122,7 @@ const ResumeList: React.FC<ResumeListProps> = ({ resumes, onDelete, onSelect }) 
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm('Are you sure that you want to delete this  resume?')) {
+                    if (window.confirm('Are you sure that you want to delete this resume?')) {
                       onDelete(resume._id);
                     }
                   }}

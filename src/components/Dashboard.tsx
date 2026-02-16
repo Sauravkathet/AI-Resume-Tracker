@@ -5,6 +5,7 @@ import ResumeUpload from './ResumeUpload';
 import ResumeList from './ResumeList';
 import JobApplicationForm from './JobApplicationForm';
 import AnalysisResults from './AnalysisResults';
+import { getApiErrorMessage } from '../utils/getApiErrorMessage';
 
 interface DashboardProps {
   user: User;
@@ -13,12 +14,22 @@ interface DashboardProps {
 
 type View = 'overview' | 'upload' | 'resumes' | 'applications' | 'analysis';
 
+interface StatusCount {
+  _id: JobApplication['status'];
+  count: number;
+}
+
+interface ApplicationStats {
+  total: number;
+  byStatus?: StatusCount[];
+}
+
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('overview');
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<ApplicationStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -91,23 +102,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     try {
       setLoading(true);
       await authAPI.deleteAccount();
-      alert('✅ Your account has been permanently deleted.');
+      window.alert('✅ Your account has been permanently deleted.');
       localStorage.removeItem('token');
       onLogout();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      alert('❌ Error deleting account: ' + (error.response?.data?.message || 'Please try again.'));
+      window.alert(`❌ Error deleting account: ${getApiErrorMessage(error, 'Please try again.')}`);
       setLoading(false);
     }
   };
 
   const getStatusStats = () => {
-    const statusCounts = stats?.byStatus || [];
+    const statusCounts = stats?.byStatus ?? [];
+    const getCount = (status: JobApplication['status']) =>
+      statusCounts.find((item) => item._id === status)?.count ?? 0;
+
     return {
-      applied: statusCounts.find((s: any) => s._id === 'Applied')?.count || 0,
-      interview: statusCounts.find((s: any) => s._id === 'Interview')?.count || 0,
-      offer: statusCounts.find((s: any) => s._id === 'Offer')?.count || 0,
-      rejected: statusCounts.find((s: any) => s._id === 'Rejected')?.count || 0,
+      applied: getCount('Applied'),
+      interview: getCount('Interview'),
+      offer: getCount('Offer'),
+      rejected: getCount('Rejected'),
     };
   };
 
@@ -126,6 +140,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   }
 
   const statusData = getStatusStats();
+  const totalApplications = stats?.total ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
@@ -251,7 +266,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0 1 12 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" />
                         </svg>
                       </div>
-                      <p className="text-5xl font-bold mb-2">{stats?.total || 0}</p>
+                      <p className="text-5xl font-bold mb-2">{totalApplications}</p>
                       <p className="text-sm opacity-90">Total submissions</p>
                     </div>
                   </div>
@@ -285,29 +300,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {stats?.total > 0 && (
+                {totalApplications > 0 && (
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Pipeline</h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">Success Rate</span>
                         <span className="font-semibold text-gray-900">
-                          {Math.round(((statusData.interview + statusData.offer) / stats.total) * 100)}%
+                          {Math.round(((statusData.interview + statusData.offer) / totalApplications) * 100)}%
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                         <div className="flex h-full">
                           <div 
                             className="bg-blue-500 transition-all duration-500" 
-                            style={{ width: `${(statusData.applied / stats.total) * 100}%` }}
+                            style={{ width: `${(statusData.applied / totalApplications) * 100}%` }}
                           ></div>
                           <div 
                             className="bg-amber-500 transition-all duration-500" 
-                            style={{ width: `${(statusData.interview / stats.total) * 100}%` }}
+                            style={{ width: `${(statusData.interview / totalApplications) * 100}%` }}
                           ></div>
                           <div 
                             className="bg-green-500 transition-all duration-500" 
-                            style={{ width: `${(statusData.offer / stats.total) * 100}%` }}
+                            style={{ width: `${(statusData.offer / totalApplications) * 100}%` }}
                           ></div>
                         </div>
                       </div>

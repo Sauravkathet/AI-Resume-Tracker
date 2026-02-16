@@ -4,6 +4,12 @@ import type { JobApplication } from '../types';
 // Use Vite dev proxy by default to avoid CORS during local development.
 // Override with VITE_API_URL for staging/production.
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PUBLIC_AUTH_ENDPOINTS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-otp',
+  '/auth/resend-otp',
+]);
 
 // Create axios instance with default config
 const api = axios.create({
@@ -18,7 +24,10 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const requestUrl = config.url ?? '';
+    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestUrl);
+
+    if (token && !isPublicAuthRequest) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -32,7 +41,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url ?? '';
+    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestUrl);
+
+    if ((status === 401 || status === 403) && !isPublicAuthRequest) {
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
       window.location.href = '/';

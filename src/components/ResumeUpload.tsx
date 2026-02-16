@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { resumeAPI } from '../services/api';
 import type { Resume } from '../types';
+import { getApiErrorMessage } from '../utils/getApiErrorMessage';
 
 interface ResumeUploadProps {
   onUploadSuccess: (resume: Resume) => void;
@@ -72,8 +73,8 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) => {
       const response = await resumeAPI.upload(file);
       onUploadSuccess(response.data);
       setFile(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Upload failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Upload failed. Please try again.'));
     } finally {
       setUploading(false);
     }

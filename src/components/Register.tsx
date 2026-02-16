@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../services/api';
 import type { User } from '../types';
+import { getApiErrorMessage } from '../utils/getApiErrorMessage';
 
 interface RegisterProps {
   onRegisterSuccess: (user: User) => void;
@@ -39,8 +40,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
       const response = await authAPI.register(name, email, password);
       setSuccessMessage(response.message);
       setStep('verify');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -61,8 +62,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
       const response = await authAPI.verifyOTP(email, otp);
       localStorage.setItem('token', response.data.token);
       onRegisterSuccess(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Invalid OTP. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -76,8 +77,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
     try {
       const response = await authAPI.resendOTP(email);
       setSuccessMessage(response.message);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to resend OTP.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to resend OTP.'));
     } finally {
       setLoading(false);
     }

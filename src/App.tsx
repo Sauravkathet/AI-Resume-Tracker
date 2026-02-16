@@ -27,7 +27,7 @@ function App() {
     try {
       const response = await authAPI.getCurrentUser();
       setUser(response.data);
-    } catch (error) {
+    } catch {
       // Token is invalid, remove it
       localStorage.removeItem('token');
     } finally {

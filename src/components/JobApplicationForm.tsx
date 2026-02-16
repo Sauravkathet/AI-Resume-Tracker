@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Resume, JobApplication } from '../types';
+import { getApiErrorMessage } from '../utils/getApiErrorMessage';
 
 interface JobApplicationFormProps {
   resumes: Resume[];
@@ -52,8 +53,8 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ resumes, onSubm
         jobUrl: '',
         notes: ''
       });
-    } catch (err) {
-      setError('Failed to create application. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to create application. Please try again.'));
     } finally {
       setSubmitting(false);
     }
