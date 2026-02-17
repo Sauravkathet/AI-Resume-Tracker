@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { JobApplication } from '../types';
+import { TOKEN_STORAGE_KEY } from '../constants/auth';
 
 // Use Vite dev proxy by default to avoid CORS during local development.
 // Override with VITE_API_URL for staging/production.
@@ -10,6 +11,22 @@ const PUBLIC_AUTH_ENDPOINTS = new Set([
   '/auth/verify-otp',
   '/auth/resend-otp',
 ]);
+
+const resolveEndpointPath = (requestUrl: string): string => {
+  if (!requestUrl) {
+    return '';
+  }
+
+  if (requestUrl.startsWith('http://') || requestUrl.startsWith('https://')) {
+    try {
+      return new URL(requestUrl).pathname.replace(/^\/api/, '');
+    } catch {
+      return requestUrl;
+    }
+  }
+
+  return requestUrl;
+};
 
 // Create axios instance with default config
 const api = axios.create({
@@ -23,12 +40,14 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    const requestUrl = config.url ?? '';
-    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestUrl);
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const requestPath = resolveEndpointPath(config.url ?? '');
+    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestPath);
 
     if (token && !isPublicAuthRequest) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers?.Authorization) {
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -42,12 +61,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    const requestUrl = error.config?.url ?? '';
-    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestUrl);
+    const requestPath = resolveEndpointPath(error.config?.url ?? '');
+    const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.has(requestPath);
 
     if ((status === 401 || status === 403) && !isPublicAuthRequest) {
       // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
       window.location.href = '/';
     }
     return Promise.reject(error);

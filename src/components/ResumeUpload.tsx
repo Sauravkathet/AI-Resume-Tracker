@@ -7,6 +7,14 @@ interface ResumeUploadProps {
   onUploadSuccess: (resume: Resume) => void;
 }
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+]);
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'doc', 'docx']);
+
 const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -34,18 +42,16 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) => {
   };
 
   const handleFileSelect = (selectedFile: File) => {
-    const validTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword'
-    ];
+    const extension = selectedFile.name.split('.').pop()?.toLowerCase();
+    const hasValidMimeType = ALLOWED_MIME_TYPES.has(selectedFile.type);
+    const hasValidExtension = extension ? ALLOWED_EXTENSIONS.has(extension) : false;
 
-    if (!validTypes.includes(selectedFile.type)) {
-      setError('Please upload a PDF or DOCX file');
+    if (!hasValidMimeType && !hasValidExtension) {
+      setError('Please upload a PDF, DOC, or DOCX file');
       return;
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
+    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
       setError('File size must be less than 5MB');
       return;
     }
@@ -128,7 +134,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onUploadSuccess }) => {
             <span className="text-gray-600"> or drag and drop</span>
           </div>
           
-          <p className="text-xs text-gray-500">PDF or DOCX up to 5MB</p>
+          <p className="text-xs text-gray-500">PDF, DOC, or DOCX up to 5MB</p>
         </div>
       </div>
 

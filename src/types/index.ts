@@ -5,6 +5,8 @@ export interface User {
   token?: string;
 }
 
+export type DateValue = string | Date;
+
 export interface Skill {
   name: string;
   category: string;
@@ -33,7 +35,7 @@ export interface ResumeAnalysis {
   strengths: string[];
   areasForImprovement: string[];
   overallScore: number;
-  analyzedAt: Date;
+  analyzedAt: DateValue;
 }
 
 export interface Resume {
@@ -44,9 +46,11 @@ export interface Resume {
   filePath: string;
   fileSize: number;
   mimeType: string;
-  analysis: ResumeAnalysis;
-  uploadedAt: Date;
+  analysis?: ResumeAnalysis | null;
+  uploadedAt: DateValue;
 }
+
+export type JobApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Withdrawn';
 
 export interface JobApplication {
   _id: string;
@@ -55,14 +59,24 @@ export interface JobApplication {
   company: string;
   position: string;
   jobDescription?: string;
-  status: 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Withdrawn';
-  applicationDate: Date;
+  status: JobApplicationStatus;
+  applicationDate: DateValue;
   salary?: string;
   location?: string;
   jobUrl?: string;
   notes?: string;
-  followUpDate?: Date;
-  updatedAt: Date;
+  followUpDate?: DateValue;
+  updatedAt: DateValue;
+}
+
+export interface JobApplicationStatusCount {
+  _id: JobApplicationStatus;
+  count: number;
+}
+
+export interface JobApplicationStats {
+  total: number;
+  byStatus?: JobApplicationStatusCount[];
 }
 
 export interface AuthResponse {

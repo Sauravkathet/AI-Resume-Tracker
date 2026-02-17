@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import LoadingScreen from './components/LoadingScreen';
+import { TOKEN_STORAGE_KEY } from './constants/auth';
 import { authAPI } from './services/api';
 import type { User } from './types';
 
@@ -15,7 +17,7 @@ function App() {
 
   useEffect(() => {
     // Check if user is already logged in
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (token) {
       loadCurrentUser();
     } else {
@@ -29,7 +31,7 @@ function App() {
       setUser(response.data);
     } catch {
       // Token is invalid, remove it
-      localStorage.removeItem('token');
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     } finally {
       setLoading(false);
     }
@@ -44,20 +46,13 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     setUser(null);
     setAuthView('login');
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Loading your account..." />;
   }
 
   if (user) {

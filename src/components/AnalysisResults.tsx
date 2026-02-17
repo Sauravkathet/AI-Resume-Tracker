@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Resume } from '../types';
+import { formatDateTime } from '../utils/formatters';
 
 interface AnalysisResultsProps {
   resume: Resume;
@@ -163,7 +164,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ resume }) => {
 
       {/* Analysis Timestamp */}
       <div className="text-center text-sm text-gray-500">
-        Analyzed on {new Date(analysis.analyzedAt).toLocaleString()}
+        Analyzed on {formatDateTime(analysis.analyzedAt)}
       </div>
     </div>
   );

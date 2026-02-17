@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { authAPI } from '../services/api';
 import type { User } from '../types';
 import { getApiErrorMessage } from '../utils/getApiErrorMessage';
+import { TOKEN_STORAGE_KEY } from '../constants/auth';
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
@@ -20,8 +21,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister }) => 
     setLoading(true);
 
     try {
-      const response = await authAPI.login(email, password);
-      localStorage.setItem('token', response.data.token);
+      const normalizedEmail = email.trim().toLowerCase();
+      const response = await authAPI.login(normalizedEmail, password);
+      localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
       onLoginSuccess(response.data);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Login failed. Please try again.'));

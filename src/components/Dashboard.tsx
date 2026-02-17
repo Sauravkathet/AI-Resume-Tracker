@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { resumeAPI, jobApplicationAPI, authAPI } from '../services/api';
-import type { User, Resume, JobApplication } from '../types';
+import type { User, Resume, JobApplication, JobApplicationStats } from '../types';
 import ResumeUpload from './ResumeUpload';
 import ResumeList from './ResumeList';
 import JobApplicationForm from './JobApplicationForm';
 import AnalysisResults from './AnalysisResults';
+import LoadingScreen from './LoadingScreen';
+import { TOKEN_STORAGE_KEY } from '../constants/auth';
 import { getApiErrorMessage } from '../utils/getApiErrorMessage';
+import { formatDate, getApplicationStatusClass, getScoreBadgeClass } from '../utils/formatters';
 
 interface DashboardProps {
   user: User;
@@ -14,47 +17,41 @@ interface DashboardProps {
 
 type View = 'overview' | 'upload' | 'resumes' | 'applications' | 'analysis';
 
-interface StatusCount {
-  _id: JobApplication['status'];
-  count: number;
-}
-
-interface ApplicationStats {
-  total: number;
-  byStatus?: StatusCount[];
-}
-
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('overview');
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
-  const [stats, setStats] = useState<ApplicationStats | null>(null);
+  const [stats, setStats] = useState<JobApplicationStats | null>(null);
+  const [pageError, setPageError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
+      setPageError('');
       const [resumesRes, appsRes, statsRes] = await Promise.all([
         resumeAPI.getAll(),
         jobApplicationAPI.getAll(),
-        jobApplicationAPI.getStats()
+        jobApplicationAPI.getStats(),
       ]);
       setResumes(resumesRes.data);
       setApplications(appsRes.data);
       setStats(statsRes.data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading data:', error);
+      setPageError(getApiErrorMessage(error, 'Unable to load dashboard data.'));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleUploadSuccess = (resume: Resume) => {
-    setResumes([resume, ...resumes]);
+    setResumes((currentResumes) => [resume, ...currentResumes]);
+    setPageError('');
     setSelectedResume(resume);
     setCurrentView('analysis');
   };
@@ -62,25 +59,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const handleResumeDelete = async (id: string) => {
     try {
       await resumeAPI.delete(id);
-      setResumes(resumes.filter(r => r._id !== id));
-    } catch (error) {
+      setResumes((currentResumes) => currentResumes.filter((resume) => resume._id !== id));
+    } catch (error: unknown) {
       console.error('Error deleting resume:', error);
+      setPageError(getApiErrorMessage(error, 'Unable to delete resume.'));
     }
   };
 
-  const handleApplicationSubmit = async (data: Partial<JobApplication>) => {
+  const handleApplicationSubmit = async (data: Partial<JobApplication>): Promise<void> => {
     try {
+      setPageError('');
       const response = await jobApplicationAPI.create(data);
-      setApplications([response.data, ...applications]);
-      loadData();
-    } catch (error) {
+      setApplications((currentApplications) => [response.data, ...currentApplications]);
+      await loadData();
+    } catch (error: unknown) {
       console.error('Error creating application:', error);
+      setPageError(getApiErrorMessage(error, 'Unable to create job application.'));
+      throw error;
     }
   };
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
-      '⚠️ WARNING: This action cannot be undone!\n\n' +
+      'Warning: This action cannot be undone.\n\n' +
       'This will permanently delete:\n' +
       '• Your account\n' +
       '• All uploaded resumes\n' +
@@ -91,23 +92,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
     if (!confirmed) return;
 
-    const doubleConfirm = window.confirm(
-      '🛑 FINAL CONFIRMATION\n\n' +
-      'Type your email to confirm deletion.\n\n' +
-      'Your email: ' + user.email
+    const confirmationInput = window.prompt(
+      'Final confirmation:\nType your account email to permanently delete this account.',
+      ''
     );
 
-    if (!doubleConfirm) return;
+    if (confirmationInput !== user.email) {
+      window.alert('Account deletion cancelled. Email did not match.');
+      return;
+    }
 
     try {
       setLoading(true);
       await authAPI.deleteAccount();
-      window.alert('✅ Your account has been permanently deleted.');
-      localStorage.removeItem('token');
+      window.alert('Your account has been permanently deleted.');
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
       onLogout();
     } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      window.alert(`❌ Error deleting account: ${getApiErrorMessage(error, 'Please try again.')}`);
+      window.alert(`Error deleting account: ${getApiErrorMessage(error, 'Please try again.')}`);
       setLoading(false);
     }
   };
@@ -126,17 +129,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 mx-auto"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 mx-auto absolute top-0 left-0 right-0"></div>
-          </div>
-          <p className="mt-6 text-lg font-medium text-gray-700">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Loading your dashboard..." />;
   }
 
   const statusData = getStatusStats();
@@ -229,6 +222,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {/* Premium Content Container */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           <div className="p-8">
+            {pageError && (
+              <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 flex items-center justify-between gap-4">
+                <p className="text-sm text-red-700">{pageError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadData()}
+                  className="whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-semibold text-red-700 border border-red-300 hover:bg-red-100"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             {currentView === 'overview' && (
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
@@ -238,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Last updated</p>
-                    <p className="text-sm font-semibold text-gray-700">{new Date().toLocaleDateString()}</p>
+                    <p className="text-sm font-semibold text-gray-700">{formatDate(new Date())}</p>
                   </div>
                 </div>
 
@@ -383,14 +389,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                     {resume.originalName}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {new Date(resume.uploadedAt).toLocaleDateString()}
+                                    {formatDate(resume.uploadedAt)}
                                   </p>
                                 </div>
                               </div>
                               <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                resume.analysis?.overallScore >= 80 ? 'bg-green-100 text-green-700' :
-                                resume.analysis?.overallScore >= 60 ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
+                                getScoreBadgeClass(resume.analysis?.overallScore ?? 0)
                               }`}>
                                 {resume.analysis?.overallScore || 'N/A'}
                               </div>
@@ -434,16 +438,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                 <p className="text-sm text-gray-600">{app.company}</p>
                               </div>
                               <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                app.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                                app.status === 'Interview' ? 'bg-amber-100 text-amber-700' :
-                                app.status === 'Offer' ? 'bg-green-100 text-green-700' :
-                                'bg-gray-100 text-gray-700'
+                                getApplicationStatusClass(app.status)
                               }`}>
                                 {app.status}
                               </span>
                             </div>
                             <div className="flex items-center text-xs text-gray-500 space-x-3">
-                              <span>📅 {new Date(app.applicationDate).toLocaleDateString()}</span>
+                              <span>📅 {formatDate(app.applicationDate)}</span>
                               {app.location && <span>📍 {app.location}</span>}
                             </div>
                           </div>
@@ -487,18 +488,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             <p className="text-gray-600 font-medium">{app.company}</p>
                           </div>
                           <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${
-                            app.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                            app.status === 'Interview' ? 'bg-amber-100 text-amber-700' :
-                            app.status === 'Offer' ? 'bg-green-100 text-green-700' :
-                            app.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
+                            getApplicationStatusClass(app.status)
                           }`}>
                             {app.status}
                           </span>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <span className="flex items-center">
-                            📅 {new Date(app.applicationDate).toLocaleDateString()}
+                            📅 {formatDate(app.applicationDate)}
                           </span>
                           {app.location && <span className="flex items-center">📍 {app.location}</span>}
                           {app.salary && <span className="flex items-center">💰 {app.salary}</span>}

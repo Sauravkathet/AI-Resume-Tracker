@@ -4,7 +4,7 @@ import { getApiErrorMessage } from '../utils/getApiErrorMessage';
 
 interface JobApplicationFormProps {
   resumes: Resume[];
-  onSubmit: (data: Partial<JobApplication>) => void;
+  onSubmit: (data: Partial<JobApplication>) => Promise<void>;
 }
 
 const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ resumes, onSubmit }) => {

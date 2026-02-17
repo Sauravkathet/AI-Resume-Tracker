@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Resume } from '../types';
+import { formatDate, formatFileSize } from '../utils/formatters';
 
 interface ResumeListProps {
   resumes: Resume[];
@@ -8,20 +9,6 @@ interface ResumeListProps {
 }
 
 const ResumeList: React.FC<ResumeListProps> = ({ resumes, onDelete, onSelect }) => {
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-  };
-
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-100';
     if (score >= 60) return 'text-yellow-600 bg-yellow-100';

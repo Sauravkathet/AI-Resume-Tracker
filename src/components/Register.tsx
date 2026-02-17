@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { authAPI } from '../services/api';
 import type { User } from '../types';
 import { getApiErrorMessage } from '../utils/getApiErrorMessage';
+import { TOKEN_STORAGE_KEY } from '../constants/auth';
 
 interface RegisterProps {
   onRegisterSuccess: (user: User) => void;
@@ -24,21 +25,30 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
     setError('');
     setSuccessMessage('');
 
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedName) {
+      setError('Name is required');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6-7 characters');
+      setError('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await authAPI.register(name, email, password);
+      const response = await authAPI.register(normalizedName, normalizedEmail, password);
       setSuccessMessage(response.message);
+      setEmail(normalizedEmail);
       setStep('verify');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
@@ -59,8 +69,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
     setLoading(true);
 
     try {
-      const response = await authAPI.verifyOTP(email, otp);
-      localStorage.setItem('token', response.data.token);
+      const response = await authAPI.verifyOTP(email.trim().toLowerCase(), otp);
+      localStorage.setItem(TOKEN_STORAGE_KEY, response.data.token);
       onRegisterSuccess(response.data);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Invalid OTP. Please try again.'));
@@ -75,7 +85,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
     setLoading(true);
 
     try {
-      const response = await authAPI.resendOTP(email);
+      const response = await authAPI.resendOTP(email.trim().toLowerCase());
       setSuccessMessage(response.message);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to resend OTP.'));
@@ -216,6 +226,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchToLogin 
                 type="text"
                 required
                 maxLength={6}
+                inputMode="numeric"
+                pattern="[0-9]{6}"
                 className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 text-center text-2xl font-bold tracking-widest focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-3xl"
                 placeholder="000000"
                 value={otp}
