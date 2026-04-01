@@ -22,7 +22,7 @@ A production-oriented React + TypeScript frontend for resume analysis and job ap
 
 - Node.js 18+ (recommended)
 - npm 9+
-- Backend API running on `http://localhost:5000`
+- Backend API running on `http://localhost:5050`
 
 ## Local Setup
 
@@ -40,7 +40,7 @@ A production-oriented React + TypeScript frontend for resume analysis and job ap
    ```
 4. Open:
    - Frontend: `http://localhost:5173`
-   - API proxy target: `http://localhost:5000`
+   - API proxy target: `http://localhost:5050`
 
 ## Environment Variables
 
@@ -80,7 +80,7 @@ src/
 
 - `403` on login/register:
   - Clear `localStorage` token and retry.
-  - Ensure backend auth routes are reachable at `http://localhost:5000/api/auth/*`.
+  - Ensure backend auth routes are reachable at `http://localhost:5050/api/auth/*`.
 - Vite proxy issues:
-  - Confirm backend is running on port `5000`.
+  - Confirm backend is running on port `5050`.
   - Confirm `VITE_API_URL` is not overriding `/api` unexpectedly.
