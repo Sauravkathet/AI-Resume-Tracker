@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { z } from 'zod';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const baseEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -10,6 +11,8 @@ const baseEnvSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   MONGODB_URI: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
 });
 
 const parsedBaseEnv = baseEnvSchema.safeParse(process.env);
@@ -36,6 +39,8 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string(),
   FRONTEND_URL: z.string().url(),
   MONGODB_URI: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().email(),
 });
 
 const parsedEnv = envSchema.safeParse({

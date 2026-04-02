@@ -20,6 +20,7 @@ import type {
   UserRecord,
 } from './types/models';
 import { createId } from './utils/id';
+import { canSendTransactionalEmail, sendVerificationOtpEmail } from './utils/email';
 import { generateOtp, getOtpExpiry, isOtpExpired } from './utils/otp';
 import { createResumeAnalysis } from './utils/resumeAnalysis';
 import { signToken } from './utils/token';
@@ -122,12 +123,49 @@ type JobApplicationResponse = Omit<JobApplicationRecord, 'resume'> & {
   resume: string | ResumeRecord;
 };
 
-const createDevOtpMessage = (otpCode: string): string => {
+const createOtpDeliveryMessage = (otpCode: string): string => {
+  if (canSendTransactionalEmail()) {
+    return 'Verification code sent successfully. Check your inbox.';
+  }
+
   if (env.NODE_ENV === 'production') {
     return 'Verification code sent successfully.';
   }
 
   return `Verification code sent successfully. Use ${otpCode} while running locally.`;
+};
+
+const deliverOtp = async ({
+  email,
+  name,
+  otpCode,
+}: {
+  email: string;
+  name: string;
+  otpCode: string;
+}): Promise<string> => {
+  if (!canSendTransactionalEmail()) {
+    return createOtpDeliveryMessage(otpCode);
+  }
+
+  try {
+    await sendVerificationOtpEmail({
+      email,
+      name,
+      otpCode,
+    });
+
+    return createOtpDeliveryMessage(otpCode);
+  } catch (error) {
+    if (env.NODE_ENV === 'production') {
+      throw error;
+    }
+
+    const reason = error instanceof Error ? error.message : 'Unknown email delivery error.';
+    console.warn(`[Email] Falling back to local OTP delivery for ${email}: ${reason}`);
+
+    return `Email delivery is unavailable locally. Use ${otpCode} to continue.`;
+  }
 };
 
 const cleanOptionalString = (value?: string): string | undefined => {
@@ -257,10 +295,15 @@ app.post(
       existingUser.otpCode = otpCode;
       existingUser.otpExpiresAt = otpExpiresAt;
       existingUser.updatedAt = timestamp;
+      const deliveryMessage = await deliverOtp({
+        email: normalizedEmail,
+        name,
+        otpCode,
+      });
 
       res.json({
         success: true,
-        message: createDevOtpMessage(otpCode),
+        message: deliveryMessage,
       });
       return;
     }
@@ -276,10 +319,15 @@ app.post(
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+    const deliveryMessage = await deliverOtp({
+      email: normalizedEmail,
+      name,
+      otpCode,
+    });
 
     res.status(201).json({
       success: true,
-      message: createDevOtpMessage(otpCode),
+      message: deliveryMessage,
     });
   })
 );
@@ -353,10 +401,15 @@ app.post(
     user.otpCode = generateOtp();
     user.otpExpiresAt = getOtpExpiry();
     user.updatedAt = new Date().toISOString();
+    const deliveryMessage = await deliverOtp({
+      email: normalizedEmail,
+      name: user.name,
+      otpCode: user.otpCode,
+    });
 
     res.json({
       success: true,
-      message: createDevOtpMessage(user.otpCode),
+      message: deliveryMessage,
     });
   })
 );
